@@ -77,7 +77,7 @@ func NewServerTracer(addr, path string) tracer.Tracer {
 	http.Handle(path, promhttp.HandlerFor(registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil {
-			hlog.Fatal("Unable to start a promhttp server, err: " + err.Error())
+			hlog.Fatal("HERTZ: Unable to start a promhttp server, err: " + err.Error())
 		}
 	}()
 
@@ -94,7 +94,7 @@ func NewServerTracer(addr, path string) tracer.Tracer {
 		prom.HistogramOpts{
 			Name:    "hertz_server_latency_us",
 			Help:    "Latency (microseconds) of HTTP that had been application-level handled by the server.",
-			Buckets: []float64{10, 20, 40, 80, 160, 320, 640, 1280},
+			Buckets: defaultBuckets,
 		},
 		[]string{labelMethod, labelStatusCode},
 	)
