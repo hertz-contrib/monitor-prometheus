@@ -33,7 +33,7 @@ Prometheus 中存储的数据为时间序列，是由 metric 的名字和一系�
 #### Summary
 - 类似于 Histogram，提供观测值的 count 和 sum 功能；
 - 提供百分位的功能，即可以按百分比划分跟踪结果；
-- Sumamry 的分位数是直接在客户端计算完成，因此对于分位数的计算而言，Summary 在通过 PromQL 进行查询时有更好的性能表现，而 Histogram 则会消耗更多的资源，对于客户端而言 Histogram 消耗的资源更少。
+- Summary 的分位数是直接在客户端计算完成，因此对于分位数的计算而言，Summary 在通过 PromQL 进行查询时有更好的性能表现，而 Histogram 则会消耗更多的资源，对于客户端而言 Histogram 消耗的资源更少。
 
 ## Labels
 - method - HTTP 的方法
