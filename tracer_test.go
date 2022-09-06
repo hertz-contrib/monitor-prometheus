@@ -27,6 +27,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/app/server"
+	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,4 +80,51 @@ func TestServerTracerWorkWithHertz(t *testing.T) {
 
 	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="GET",statusCode="200"} 10`))
 	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="POST",statusCode="200"} 10`))
+}
+
+// TestWithOption test server tracer with options
+func TestWithOption(t *testing.T) {
+	registry := prom.NewRegistry()
+
+	// define your own vec
+	testCounter := prom.NewCounterVec(prom.CounterOpts{
+		Name: "test_with_option",
+		Help: "Use for test with option",
+	}, []string{
+		"test1", "test2",
+	})
+
+	registry.MustRegister(testCounter)
+	_ = counterAdd(testCounter, 1, prom.Labels{
+		"test1": "test1",
+		"test2": "test2",
+	})
+
+	h := server.Default(
+		server.WithHostPorts("127.0.0.1:8891"), server.WithTracer(
+			NewServerTracer(":8892", "/metrics-option",
+				WithRegistry(registry),
+				WithEnableGoCollector(true),
+			),
+		),
+	)
+
+	go h.Spin()
+
+	time.Sleep(time.Second) // wait server start
+
+	metricsRes, err := http.Get("http://127.0.0.1:8892/metrics-option")
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, metricsRes.StatusCode)
+
+	defer metricsRes.Body.Close()
+	metricsResBytes, err := io.ReadAll(metricsRes.Body)
+
+	assert.Nil(t, err)
+
+	metricsResStr := string(metricsResBytes)
+
+	assert.True(t, strings.Contains(metricsResStr, "test_with_option{test1=\"test1\",test2=\"test2\"} 1"))
+	assert.True(t, strings.Contains(metricsResStr, "# TYPE go_gc_duration_seconds summary"))
 }
