@@ -128,3 +128,49 @@ func TestWithOption(t *testing.T) {
 	assert.True(t, strings.Contains(metricsResStr, "test_with_option{test1=\"test1\",test2=\"test2\"} 1"))
 	assert.True(t, strings.Contains(metricsResStr, "# TYPE go_gc_duration_seconds summary"))
 }
+
+// TestWithBucketsOption test server tracer with buckets option
+func TestWithBucketsOption(t *testing.T) {
+	customBuckets := []float64{500, 1000, 2500, 5000, 10000, 25000, 50000, 250000}
+	h := server.Default(server.WithHostPorts("127.0.0.1:8895"), server.WithTracer(NewServerTracer(":8896", "/metrics-buckets", WithHistogramBuckets(customBuckets))))
+
+	h.GET("/metricGet", func(c context.Context, ctx *app.RequestContext) {
+		ctx.String(200, "hello get")
+	})
+
+	h.POST("/metricPost", func(c context.Context, ctx *app.RequestContext) {
+		rand.Seed(time.Now().UnixMilli())
+		// make sure the response time is greater than 50 milliseconds and less than around 151 milliseconds
+		time.Sleep(time.Duration(rand.Intn(100)+51) * time.Millisecond)
+		ctx.String(200, "hello post")
+	})
+
+	go h.Spin()
+
+	time.Sleep(time.Second) // wait server start
+
+	for i := 0; i < 10; i++ {
+		_, err := http.Get("http://127.0.0.1:8895/metricGet")
+		assert.Nil(t, err)
+		_, err = http.Post("http://127.0.0.1:8895/metricPost", "application/json", strings.NewReader(""))
+		assert.Nil(t, err)
+	}
+
+	metricsRes, err := http.Get("http://127.0.0.1:8896/metrics-buckets")
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, metricsRes.StatusCode)
+
+	defer metricsRes.Body.Close()
+
+	metricsResBytes, err := io.ReadAll(metricsRes.Body)
+
+	assert.Nil(t, err)
+
+	metricsResStr := string(metricsResBytes)
+
+	assert.True(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"500\"} 0"))
+	assert.True(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"250000\"} 10"))
+	// must not contains values in defaultBuckets
+	assert.False(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"500000\"} 10"))
+}
