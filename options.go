@@ -45,7 +45,6 @@ func defaultConfig() *config {
 		enableGoCollector: false,
 		registry:          prom.NewRegistry(),
 	}
-
 }
 
 // WithEnableGoCollector enable go collector
