@@ -26,6 +26,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/tracer"
 	"github.com/cloudwego/hertz/pkg/common/tracer/stats"
 	prom "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -72,9 +73,14 @@ func (s *serverTracer) Finish(ctx context.Context, c *app.RequestContext) {
 }
 
 // NewServerTracer provides tracer for server access, addr and path is the scrape_configs for prometheus server.
-func NewServerTracer(addr, path string) tracer.Tracer {
-	registry := prom.NewRegistry()
-	http.Handle(path, promhttp.HandlerFor(registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
+func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
+	cfg := defaultConfig()
+
+	for _, opts := range opts {
+		opts.apply(cfg)
+	}
+
+	http.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			hlog.Fatal("HERTZ: Unable to start a promhttp server, err: " + err.Error())
@@ -88,17 +94,21 @@ func NewServerTracer(addr, path string) tracer.Tracer {
 		},
 		[]string{labelMethod, labelStatusCode},
 	)
-	registry.MustRegister(serverHandledCounter)
+	cfg.registry.MustRegister(serverHandledCounter)
 
 	serverHandledHistogram := prom.NewHistogramVec(
 		prom.HistogramOpts{
 			Name:    "hertz_server_latency_us",
 			Help:    "Latency (microseconds) of HTTP that had been application-level handled by the server.",
-			Buckets: defaultBuckets,
+			Buckets: cfg.buckets,
 		},
 		[]string{labelMethod, labelStatusCode},
 	)
-	registry.MustRegister(serverHandledHistogram)
+	cfg.registry.MustRegister(serverHandledHistogram)
+
+	if cfg.enableGoCollector {
+		cfg.registry.MustRegister(collectors.NewGoCollector())
+	}
 
 	return &serverTracer{
 		serverHandledCounter:   serverHandledCounter,
