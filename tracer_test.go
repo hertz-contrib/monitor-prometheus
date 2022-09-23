@@ -33,7 +33,7 @@ import (
 
 // TestServerTracer test server tracer work with hertz.
 func TestServerTracerWorkWithHertz(t *testing.T) {
-	h := server.Default(server.WithHostPorts("127.0.0.1:8888"), server.WithTracer(NewServerTracer(":8889", "/metrics")))
+	h := server.Default(server.WithHostPorts("127.0.0.1:8888"), server.WithTracer(NewServerTracer(":8889", "/metrics", WithEnableGoCollector(true))))
 
 	h.GET("/metricGet", func(c context.Context, ctx *app.RequestContext) {
 		ctx.String(200, "hello get")
@@ -70,16 +70,16 @@ func TestServerTracerWorkWithHertz(t *testing.T) {
 
 	metricsResStr := string(metricsResBytes)
 
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="GET",statusCode="200",le="+Inf"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="GET",statusCode="200"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",statusCode="200",le="250000"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="GET",path="/metricGet",statusCode="200",le="+Inf"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="GET",path="/metricGet",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="250000"} 10`))
 	// response time is always greater than 50000 microseconds
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",statusCode="200",le="50000"} 0`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",statusCode="200",le="5000"} 0`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="POST",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="50000"} 0`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="5000"} 0`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="POST",path="/metricPost",statusCode="200"} 10`))
 
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="GET",statusCode="200"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="POST",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="GET",path="/metricGet",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="POST",path="/metricPost",statusCode="200"} 10`))
 }
 
 // TestWithOption test server tracer with options
@@ -169,8 +169,8 @@ func TestWithBucketsOption(t *testing.T) {
 
 	metricsResStr := string(metricsResBytes)
 
-	assert.True(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"500\"} 0"))
-	assert.True(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"250000\"} 10"))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="500"} 0`))
+	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="250000"} 10`))
 	// must not contains values in defaultBuckets
-	assert.False(t, strings.Contains(metricsResStr, "hertz_server_latency_us_bucket{method=\"POST\",statusCode=\"200\",le=\"500000\"} 10"))
+	assert.False(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="500000"} 10`))
 }

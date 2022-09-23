@@ -33,6 +33,7 @@ import (
 const (
 	labelMethod     = "method"
 	labelStatusCode = "statusCode"
+	labelPath       = "path"
 
 	unknownLabelValue = "unknown"
 )
@@ -42,6 +43,7 @@ func genLabels(ctx *app.RequestContext) prom.Labels {
 	labels := make(prom.Labels)
 	labels[labelMethod] = defaultValIfEmpty(string(ctx.Request.Method()), unknownLabelValue)
 	labels[labelStatusCode] = defaultValIfEmpty(strconv.Itoa(ctx.Response.Header.StatusCode()), unknownLabelValue)
+	labels[labelPath] = defaultValIfEmpty(string(ctx.Request.Path()), unknownLabelValue)
 
 	return labels
 }
@@ -92,7 +94,7 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 			Name: "hertz_server_throughput",
 			Help: "Total number of HTTPs completed by the server, regardless of success or failure.",
 		},
-		[]string{labelMethod, labelStatusCode},
+		[]string{labelMethod, labelStatusCode, labelPath},
 	)
 	cfg.registry.MustRegister(serverHandledCounter)
 
@@ -102,7 +104,7 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 			Help:    "Latency (microseconds) of HTTP that had been application-level handled by the server.",
 			Buckets: cfg.buckets,
 		},
-		[]string{labelMethod, labelStatusCode},
+		[]string{labelMethod, labelStatusCode, labelPath},
 	)
 	cfg.registry.MustRegister(serverHandledHistogram)
 
