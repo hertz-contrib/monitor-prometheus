@@ -18,6 +18,7 @@ package prometheus
 
 import (
 	prom "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 var defaultBuckets = []float64{5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000}
@@ -34,9 +35,11 @@ func (fn option) apply(cfg *config) {
 }
 
 type config struct {
-	buckets           []float64
-	enableGoCollector bool
-	registry          *prom.Registry
+	buckets            []float64
+	enableGoCollector  bool
+	registry           *prom.Registry
+	runtimeMetricRules []collectors.GoRuntimeMetricsRule
+	disableServer      bool
 }
 
 func defaultConfig() *config {
@@ -44,6 +47,7 @@ func defaultConfig() *config {
 		buckets:           defaultBuckets,
 		enableGoCollector: false,
 		registry:          prom.NewRegistry(),
+		disableServer:     false,
 	}
 }
 
@@ -51,6 +55,20 @@ func defaultConfig() *config {
 func WithEnableGoCollector(enable bool) Option {
 	return option(func(cfg *config) {
 		cfg.enableGoCollector = enable
+	})
+}
+
+// WithGoCollectorRule define your custom go collector rule
+func WithGoCollectorRule(rules ...collectors.GoRuntimeMetricsRule) Option {
+	return option(func(cfg *config) {
+		cfg.runtimeMetricRules = rules
+	})
+}
+
+// WithDisableServer disable prometheus server
+func WithDisableServer(disable bool) Option {
+	return option(func(cfg *config) {
+		cfg.disableServer = disable
 	})
 }
 

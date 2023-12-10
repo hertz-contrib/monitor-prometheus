@@ -21,13 +21,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/tracer"
 	"github.com/cloudwego/hertz/pkg/common/tracer/stats"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -82,12 +83,14 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 		opts.apply(cfg)
 	}
 
-	http.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
-	go func() {
-		if err := http.ListenAndServe(addr, nil); err != nil {
-			hlog.Fatal("HERTZ: Unable to start a promhttp server, err: " + err.Error())
-		}
-	}()
+	if !cfg.disableServer {
+		http.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
+		go func() {
+			if err := http.ListenAndServe(addr, nil); err != nil {
+				hlog.Fatal("HERTZ: Unable to start a promhttp server, err: " + err.Error())
+			}
+		}()
+	}
 
 	serverHandledCounter := prom.NewCounterVec(
 		prom.CounterOpts{
@@ -109,7 +112,7 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 	cfg.registry.MustRegister(serverHandledHistogram)
 
 	if cfg.enableGoCollector {
-		cfg.registry.MustRegister(collectors.NewGoCollector())
+		cfg.registry.MustRegister(collectors.NewGoCollector(collectors.WithGoCollectorRuntimeMetrics(cfg.runtimeMetricRules...)))
 	}
 
 	return &serverTracer{
