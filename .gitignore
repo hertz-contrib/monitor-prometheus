@@ -1,2 +1,5 @@
 alert.rules/
 .idea/
+
+# mac
+.DS_Store
