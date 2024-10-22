@@ -173,5 +173,5 @@ func TestWithBucketsOption(t *testing.T) {
 	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="500"} 10`))
 	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="250000"} 10`))
 	// must not contains values in defaultBuckets
-	assert.False(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="+Inf"} 10`))
+	assert.False(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="500000"} 10`))
 }
