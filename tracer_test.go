@@ -40,9 +40,10 @@ func TestServerTracerWorkWithHertz(t *testing.T) {
 	})
 
 	h.POST("/metricPost", func(c context.Context, ctx *app.RequestContext) {
-		rand.Seed(time.Now().UnixMilli())
+		seed := time.Now().UnixMilli()
+		rnd := rand.New(rand.NewSource(seed))
 		// make sure the response time is greater than 50 milliseconds and less than around 151 milliseconds
-		time.Sleep(time.Duration(rand.Intn(100)+51) * time.Millisecond)
+		time.Sleep(time.Duration(rnd.Intn(100)+51) * time.Millisecond)
 		ctx.String(200, "hello post")
 	})
 
@@ -70,16 +71,17 @@ func TestServerTracerWorkWithHertz(t *testing.T) {
 
 	metricsResStr := string(metricsResBytes)
 
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="GET",path="/metricGet",statusCode="200",le="+Inf"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="GET",path="/metricGet",statusCode="200"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="250000"} 10`))
-	// response time is always greater than 50000 microseconds
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="50000"} 0`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="5000"} 0`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_count{method="POST",path="/metricPost",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="GET",http_status_code="200",path="/metricGet",le="+Inf"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_count{http_method="GET",http_status_code="200",path="/metricGet"} 10`))
 
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="GET",path="/metricGet",statusCode="200"} 10`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_throughput{method="POST",path="/metricPost",statusCode="200"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="250000"} 10`))
+
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="50000"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="5000"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_count{http_method="POST",http_status_code="200",path="/metricPost"} 10`))
+
+	assert.True(t, strings.Contains(metricsResStr, `http_counter{http_method="GET",http_status_code="200",path="/metricGet"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_counter{http_method="POST",http_status_code="200",path="/metricPost"} 10`))
 }
 
 // TestWithOption test server tracer with options
@@ -139,9 +141,10 @@ func TestWithBucketsOption(t *testing.T) {
 	})
 
 	h.POST("/metricPost", func(c context.Context, ctx *app.RequestContext) {
-		rand.Seed(time.Now().UnixMilli())
+		seed := time.Now().UnixMilli()
+		rnd := rand.New(rand.NewSource(seed))
 		// make sure the response time is greater than 50 milliseconds and less than around 151 milliseconds
-		time.Sleep(time.Duration(rand.Intn(100)+51) * time.Millisecond)
+		time.Sleep(time.Duration(rnd.Intn(100)+51) * time.Millisecond)
 		ctx.String(200, "hello post")
 	})
 
@@ -169,8 +172,8 @@ func TestWithBucketsOption(t *testing.T) {
 
 	metricsResStr := string(metricsResBytes)
 
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="500"} 0`))
-	assert.True(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="250000"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="500"} 10`))
+	assert.True(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="250000"} 10`))
 	// must not contains values in defaultBuckets
-	assert.False(t, strings.Contains(metricsResStr, `hertz_server_latency_us_bucket{method="POST",path="/metricPost",statusCode="200",le="500000"} 10`))
+	assert.False(t, strings.Contains(metricsResStr, `http_latency_bucket{http_method="POST",http_status_code="200",path="/metricPost",le="500000"} 10`))
 }
