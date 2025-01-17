@@ -40,6 +40,7 @@ type config struct {
 	registry           *prom.Registry
 	runtimeMetricRules []collectors.GoRuntimeMetricsRule
 	disableServer      bool
+	useDefaultServer   bool
 }
 
 func defaultConfig() *config {
@@ -48,6 +49,7 @@ func defaultConfig() *config {
 		enableGoCollector: false,
 		registry:          prom.NewRegistry(),
 		disableServer:     false,
+		useDefaultServer:  true,
 	}
 }
 
@@ -87,5 +89,12 @@ func WithRegistry(registry *prom.Registry) Option {
 		if registry != nil {
 			cfg.registry = registry
 		}
+	})
+}
+
+// WithDefaultServer use default http server
+func WithDefaultServer() Option {
+	return option(func(cfg *config) {
+		cfg.useDefaultServer = true
 	})
 }
