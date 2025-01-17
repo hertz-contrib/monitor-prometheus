@@ -93,8 +93,8 @@ func WithRegistry(registry *prom.Registry) Option {
 }
 
 // WithDefaultServer use default http server
-func WithDefaultServer() Option {
+func WithDefaultServer(useDefault bool) Option {
 	return option(func(cfg *config) {
-		cfg.useDefaultServer = true
+		cfg.useDefaultServer = useDefault
 	})
 }
