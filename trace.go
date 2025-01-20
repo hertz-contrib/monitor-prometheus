@@ -85,7 +85,7 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 
 	if !cfg.disableServer {
 		httpServer := http.DefaultServeMux
-		if !cfg.useDefaultServer {
+		if !cfg.useDefaultMuxServer {
 			httpServer = http.NewServeMux()
 		}
 		httpServer.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
