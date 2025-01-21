@@ -40,7 +40,7 @@ type config struct {
 	registry            *prom.Registry
 	runtimeMetricRules  []collectors.GoRuntimeMetricsRule
 	disableServer       bool
-	useDefaultMuxServer bool
+	useDefaultServerMux bool
 }
 
 func defaultConfig() *config {
@@ -49,7 +49,7 @@ func defaultConfig() *config {
 		enableGoCollector:   false,
 		registry:            prom.NewRegistry(),
 		disableServer:       false,
-		useDefaultMuxServer: true,
+		useDefaultServerMux: true,
 	}
 }
 
@@ -92,9 +92,9 @@ func WithRegistry(registry *prom.Registry) Option {
 	})
 }
 
-// WithDefaultMuxServer use default http mux server
-func WithDefaultMuxServer(useDefault bool) Option {
+// WithDefaultServerMux use http.DefaultServeMux
+func WithDefaultServerMux(useDefault bool) Option {
 	return option(func(cfg *config) {
-		cfg.useDefaultMuxServer = useDefault
+		cfg.useDefaultServerMux = useDefault
 	})
 }
