@@ -84,9 +84,13 @@ func NewServerTracer(addr, path string, opts ...Option) tracer.Tracer {
 	}
 
 	if !cfg.disableServer {
-		http.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
+		httpServer := http.DefaultServeMux
+		if !cfg.useDefaultServerMux {
+			httpServer = http.NewServeMux()
+		}
+		httpServer.Handle(path, promhttp.HandlerFor(cfg.registry, promhttp.HandlerOpts{ErrorHandling: promhttp.ContinueOnError}))
 		go func() {
-			if err := http.ListenAndServe(addr, nil); err != nil {
+			if err := http.ListenAndServe(addr, httpServer); err != nil {
 				hlog.Fatal("HERTZ: Unable to start a promhttp server, err: " + err.Error())
 			}
 		}()

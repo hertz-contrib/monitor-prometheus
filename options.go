@@ -35,19 +35,21 @@ func (fn option) apply(cfg *config) {
 }
 
 type config struct {
-	buckets            []float64
-	enableGoCollector  bool
-	registry           *prom.Registry
-	runtimeMetricRules []collectors.GoRuntimeMetricsRule
-	disableServer      bool
+	buckets             []float64
+	enableGoCollector   bool
+	registry            *prom.Registry
+	runtimeMetricRules  []collectors.GoRuntimeMetricsRule
+	disableServer       bool
+	useDefaultServerMux bool
 }
 
 func defaultConfig() *config {
 	return &config{
-		buckets:           defaultBuckets,
-		enableGoCollector: false,
-		registry:          prom.NewRegistry(),
-		disableServer:     false,
+		buckets:             defaultBuckets,
+		enableGoCollector:   false,
+		registry:            prom.NewRegistry(),
+		disableServer:       false,
+		useDefaultServerMux: true,
 	}
 }
 
@@ -87,5 +89,12 @@ func WithRegistry(registry *prom.Registry) Option {
 		if registry != nil {
 			cfg.registry = registry
 		}
+	})
+}
+
+// WithDefaultServerMux use http.DefaultServeMux
+func WithDefaultServerMux(useDefault bool) Option {
+	return option(func(cfg *config) {
+		cfg.useDefaultServerMux = useDefault
 	})
 }
